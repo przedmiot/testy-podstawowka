@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Ułamki Dziesiętne - Poziom 5 Klasa</title>
+    <!-- Tailwind CSS dla nowoczesnego wyglądu -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React i ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel do kompilacji JSX w przeglądarce -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0fdfa;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+            20%, 80% {
+                transform: translate3d(2px, 0, 0);
+            }
+            30%, 50%, 70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+            40%, 60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s ease-out forwards;
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+    const {useState, useEffect, useRef} = React;
+
+    // --- BAZA PYTAŃ ZBUDOWANA NA PODSTAWIE ZDJĘĆ PODRĘCZNIKA I ZESZYTU ---
+    const initialQuestions = [
+        {
+            id: 1,
+            text: "Wskaż postać dziesiętną liczby 7 i 15/1000.",
+            options: ["7,15", "7,015", "7,3", "0,715"],
+            correct: "7,015",
+            hint: "Ułamek ma w mianowniku 1000 (trzy zera), więc po przecinku muszą być trzy cyfry."
+        },
+        {
+            id: 2,
+            text: "Które liczby porównano poprawnie?",
+            options: ["18,9 < 18,89", "97,08 < 97,9", "407,99 > 47,11", "Zarówno B jak i C"],
+            correct: "Zarówno B jak i C",
+            hint: "Aby łatwiej porównać ułamki, wyrównaj liczbę cyfr po przecinku dopisując zera (np. 18,90 i 18,89)."
+        },
+        {
+            id: 3,
+            text: "Wynikiem działania 0,12 + 0,6 jest:",
+            options: ["0,18", "0,72", "0,072", "1,8"],
+            correct: "0,72",
+            hint: "Pamiętaj o dodawaniu całości do całości, a części dziesiętnych do dziesiętnych. Podpisz: 0,12 + 0,60."
+        },
+        {
+            id: 4,
+            text: "Jakim ułamkiem zwykłym jest 0,25?",
+            options: ["1/2", "1/4", "1/5", "2/5"],
+            correct: "1/4",
+            hint: "Zapisz to jako 25/100 i skróć ułamek dzieląc licznik i mianownik przez 25."
+        },
+        {
+            id: 5,
+            text: "Zamień 16 cm 5 mm na centymetry.",
+            options: ["16,5 cm", "16,05 cm", "1,65 cm", "165 cm"],
+            correct: "16,5 cm",
+            hint: "1 centymetr to 10 milimetrów. Zatem 5 mm to 0,5 cm."
+        },
+        {
+            id: 6,
+            text: "Zamień 8 kg 70 g na kilogramy.",
+            options: ["8,7 kg", "8,07 kg", "8,007 kg", "870 kg"],
+            correct: "8,07 kg",
+            hint: "1 kilogram to 1000 gramów. 70 gramów to 70/1000 kg, czyli 0,070 kg."
+        },
+        {
+            id: 7,
+            text: "Oblicz: 2,0 - 0,02 =",
+            options: ["1,8", "1,08", "1,98", "0,18"],
+            correct: "1,98",
+            hint: "Zapisz pierwszą liczbę z dwoma miejscami po przecinku: 2,00 - 0,02 i wykonaj odejmowanie."
+        },
+        {
+            id: 8,
+            text: "Wiedząc, że 325 * 126 = 40 950, wskaż wynik działania 3,25 * 12,6.",
+            options: ["409,5", "40,95", "4,095", "4095"],
+            correct: "40,95",
+            hint: "Policz wszystkie cyfry po przecinku w obu liczbach (są trzy). Wynik musi mieć 3 miejsca po przecinku (40,950)."
+        },
+        {
+            id: 9,
+            text: "Maurycy ma 1,6 m wzrostu. Jego tata jest o 22 cm wyższy. Ile wzrostu ma tata?",
+            options: ["1,82 m", "3,8 m", "1,622 m", "1,38 m"],
+            correct: "1,82 m",
+            hint: "Najpierw zamień 22 cm na metry (0,22 m), a potem dodaj do wzrostu Maurycego."
+        },
+        {
+            id: 10,
+            text: "Podłoga ma kształt prostokąta. Jeden bok ma 4,15 m, a drugi jest o 0,7 m dłuższy. Jaka jest długość drugiego boku?",
+            options: ["4,85 m", "3,45 m", "4,22 m", "11,15 m"],
+            correct: "4,85 m",
+            hint: "Skoro drugi bok jest 'o coś dłuższy', musisz wykonać dodawanie: 4,15 + 0,70."
+        },
+        {
+            id: 11,
+            text: "Oblicz w pamięci: 45,5 : 10 =",
+            options: ["455", "4,55", "0,455", "4550"],
+            correct: "4,55",
+            hint: "Przy dzieleniu przez 10 przesuwamy przecinek o jedno miejsce w lewo."
+        },
+        {
+            id: 12,
+            text: "Oblicz w pamięci: 3,14 * 100 =",
+            options: ["31,4", "314", "3140", "0,0314"],
+            correct: "314",
+            hint: "Przy mnożeniu przez 100 przesuwamy przecinek o dwa miejsca w prawo."
+        },
+        {
+            id: 13,
+            text: "Do koktajlu potrzeba 0,4 kg bananów i 0,15 kg jogurtu. Jaka jest łączna masa tych składników?",
+            options: ["0,55 kg", "0,19 kg", "0,415 kg", "0,25 kg"],
+            correct: "0,55 kg",
+            hint: "Dodaj w słupku lub pamięci: 0,40 + 0,15."
+        },
+        {
+            id: 14,
+            text: "Trójkąt równoramienny ma obwód 24,6 m. Podstawa ma 9,84 m. Jak z tego policzyć ramię?",
+            options: ["Od 24,6 odjąć 9,84 i wynik podzielić na 2", "24,6 podzielić na 3", "Dodać 24,6 i 9,84", "Pomnożyć 9,84 przez 2"],
+            correct: "Od 24,6 odjąć 9,84 i wynik podzielić na 2",
+            hint: "Trójkąt równoramienny ma dwa równe ramiona. Obwód to suma wszystkich trzech boków."
+        },
+        {
+            id: 15,
+            text: "Co jest większe: 0,312 czy 0,125?",
+            options: ["0,312", "0,125", "Są równe", "Nie da się określić"],
+            correct: "0,312",
+            hint: "Sprawdź pierwszą cyfrę po przecinku. 3 jest większe niż 1."
+        },
+        {
+            id: 16,
+            text: "Jaka liczba leży na osi liczbowej dokładnie pośrodku między 0,4 a 0,5?",
+            options: ["0,45", "0,41", "0,55", "0,9"],
+            correct: "0,45",
+            hint: "Wyobraź sobie te liczby jako 0,40 i 0,50. Co jest dokładnie pomiędzy 40 a 50?"
+        },
+        {
+            id: 17,
+            text: "Kilogram bananów kosztuje 7,00 zł. Ile zapłacisz za 0,4 kg bananów?",
+            options: ["2,80 zł", "28 zł", "0,28 zł", "3,50 zł"],
+            correct: "2,80 zł",
+            hint: "Musisz wykonać mnożenie: 7 * 0,4."
+        },
+        {
+            id: 18,
+            text: "Oblicz obwód prostokąta o bokach 2,5 cm i 4 cm.",
+            options: ["13 cm", "6,5 cm", "10 cm", "9 cm"],
+            correct: "13 cm",
+            hint: "Obwód prostokąta to suma wszystkich czterech boków: 2 * 2,5 + 2 * 4."
+        },
+        {
+            id: 19,
+            text: "Wskaż wynik dodawania: 54 + 14,713",
+            options: ["68,713", "14,767", "687,13", "15,253"],
+            correct: "68,713",
+            hint: "Liczba 54 to inaczej 54,000. Dodaj całości do całości."
+        },
+        {
+            id: 20,
+            text: "Zosia miała 10 zł. Kupiła zeszyt za 4,50 zł i długopis za 2,30 zł. Ile reszty otrzymała?",
+            options: ["3,20 zł", "6,80 zł", "4,20 zł", "2,20 zł"],
+            correct: "3,20 zł",
+            hint: "Najpierw policz ile Zosia wydała (4,50 + 2,30), a potem odejmij tę kwotę od 10,00 zł."
+        }
+    ];
+
+    // --- SYSTEM AUDIO (Web Audio API - działa wszędzie bez zewnętrznych plików) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const playTone = (frequency, type, duration) => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+    };
+
+    const playCorrectSound = () => {
+        playTone(523.25, 'sine', 0.1); // C5
+        setTimeout(() => playTone(659.25, 'sine', 0.2), 100); // E5
+        setTimeout(() => playTone(783.99, 'sine', 0.3), 200); // G5
+    };
+
+    const playIncorrectSound = () => {
+        playTone(150, 'sawtooth', 0.3);
+        setTimeout(() => playTone(100, 'sawtooth', 0.4), 150);
+    };
+
+    const playFinishSound = () => {
+        [0, 200, 400, 600].forEach((delay, i) => {
+            setTimeout(() => playTone(440 + (i * 110), 'square', 0.2), delay);
+        });
+    };
+
+
+    // --- KOMPONENT GŁÓWNY ---
+    const App = () => {
+        const [studentName, setStudentName] = useState("");
+        const [isStarted, setIsStarted] = useState(false);
+        const [queue, setQueue] = useState([]);
+        const [currentQuestion, setCurrentQuestion] = useState(null);
+        const [score, setScore] = useState(0);
+        const [isFinished, setIsFinished] = useState(false);
+        const [feedback, setFeedback] = useState(null); // 'correct', 'incorrect'
+        const [showHint, setShowHint] = useState(false);
+        const [totalQuestions, setTotalQuestions] = useState(0);
+
+        // Inicjalizacja pytań przy starcie
+        const startQuiz = (name) => {
+            if (audioCtx.state === 'suspended') audioCtx.resume(); // Odblokowanie audio
+            setStudentName(name);
+            setIsStarted(true);
+
+            // Klonujemy i tasujemy pytania, dodajemy licznik prób
+            let shuffled = [...initialQuestions]
+                .sort(() => Math.random() - 0.5)
+                .map(q => ({...q, attempts: 0}));
+
+            setTotalQuestions(shuffled.length);
+            setQueue(shuffled);
+            setCurrentQuestion(shuffled[0]);
+        };
+
+        const handleAnswer = (selectedOption) => {
+            const isCorrect = selectedOption === currentQuestion.correct;
+            setShowHint(false); // Ukryj podpowiedź przy przejściu
+
+            if (isCorrect) {
+                playCorrectSound();
+                setFeedback('correct');
+
+                // Punkty: 1 za pierwszą próbę, 0.75 za kolejne
+                const pointsEarned = currentQuestion.attempts === 0 ? 1 : 0.75;
+                setScore(prev => prev + pointsEarned);
+
+                setTimeout(() => {
+                    setFeedback(null);
+                    const newQueue = queue.slice(1); // Usuń obecne pytanie
+                    if (newQueue.length > 0) {
+                        setQueue(newQueue);
+                        setCurrentQuestion(newQueue[0]);
+                    } else {
+                        setIsFinished(true);
+                        playFinishSound();
+                    }
+                }, 1000);
+
+            } else {
+                playIncorrectSound();
+                setFeedback('incorrect');
+
+                setTimeout(() => {
+                    setFeedback(null);
+                    // Zwiększ licznik błędów i przesuń na koniec
+                    const updatedQuestion = {...currentQuestion, attempts: currentQuestion.attempts + 1};
+                    const newQueue = [...queue.slice(1), updatedQuestion];
+                    setQueue(newQueue);
+                    setCurrentQuestion(newQueue[0]);
+                }, 1200);
+            }
+        };
+
+        const restartQuiz = () => {
+            setIsFinished(false);
+            setScore(0);
+            startQuiz(studentName);
+        };
+
+        // Ekrany aplikacji
+        if (!isStarted) {
+            return <WelcomeScreen onStart={startQuiz}/>;
+        }
+
+        if (isFinished) {
+            return <ResultScreen score={score} total={totalQuestions} name={studentName} onRestart={restartQuiz}/>;
+        }
+
+        if (!currentQuestion) return null;
+
+        const progress = ((totalQuestions - queue.length) / totalQuestions) * 100;
+
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+                {/* Ozdobne tło w kropki */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+                    backgroundImage: 'radial-gradient(#3b82f6 2px, transparent 2px)',
+                    backgroundSize: '30px 30px'
+                }}></div>
+
+                <div className="glass-panel w-full max-w-2xl rounded-3xl p-6 md:p-10 relative z-10 pop-in">
+
+                    {/* Pasek postępu */}
+                    <div className="mb-6">
+                        <div className="flex justify-between text-sm text-slate-500 font-bold mb-2">
+                            <span>Uczeń: {studentName}</span>
+                            <span>Pozostało zadań: {queue.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                            <div className="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
+                                 style={{width: `${progress}%`}}></div>
+                        </div>
+                    </div>
+
+                    {/* Karta z pytaniem */}
+                    <div className={`transition-all duration-300 ${feedback === 'incorrect' ? 'shake' : ''}`}>
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6 text-center">
+                            {currentQuestion.text}
+                        </h2>
+
+                        {/* Informacja jeśli to jest powtórka */}
+                        {currentQuestion.attempts > 0 && (
+                            <div
+                                className="bg-amber-100 text-amber-800 text-sm py-2 px-4 rounded-lg mb-6 text-center font-semibold animate-pulse">
+                                To pytanie sprawiło Ci wcześniej trudność. Spróbuj jeszcze raz! (Max 0.75 pkt)
+                            </div><!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Ułamki Dziesiętne - Poziom 5 Klasa</title>
+    <!-- Tailwind CSS dla nowoczesnego wyglądu -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React i ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel do kompilacji JSX w przeglądarce -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0fdfa;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+            20%, 80% {
+                transform: translate3d(2px, 0, 0);
+            }
+            30%, 50%, 70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+            40%, 60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s ease-out forwards;
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+    const {useState, useEffect, useRef} = React;
+
+    // --- BAZA PYTAŃ ZBUDOWANA NA PODSTAWIE ZDJĘĆ PODRĘCZNIKA I ZESZYTU ---
+    const initialQuestions = [
+        {
+            id: 1,
+            text: "Wskaż postać dziesiętną liczby 7 i 15/1000.",
+            options: ["7,15", "7,015", "7,3", "0,715"],
+            correct: "7,015",
+            hint: "Ułamek ma w mianowniku 1000 (trzy zera), więc po przecinku muszą być trzy cyfry."
+        },
+        {
+            id: 2,
+            text: "Które liczby porównano poprawnie?",
+            options: ["18,9 < 18,89", "97,08 < 97,9", "407,99 > 47,11", "Zarówno B jak i C"],
+            correct: "Zarówno B jak i C",
+            hint: "Aby łatwiej porównać ułamki, wyrównaj liczbę cyfr po przecinku dopisując zera (np. 18,90 i 18,89)."
+        },
+        {
+            id: 3,
+            text: "Wynikiem działania 0,12 + 0,6 jest:",
+            options: ["0,18", "0,72", "0,072", "1,8"],
+            correct: "0,72",
+            hint: "Pamiętaj o dodawaniu całości do całości, a części dziesiętnych do dziesiętnych. Podpisz: 0,12 + 0,60."
+        },
+        {
+            id: 4,
+            text: "Jakim ułamkiem zwykłym jest 0,25?",
+            options: ["1/2", "1/4", "1/5", "2/5"],
+            correct: "1/4",
+            hint: "Zapisz to jako 25/100 i skróć ułamek dzieląc licznik i mianownik przez 25."
+        },
+        {
+            id: 5,
+            text: "Zamień 16 cm 5 mm na centymetry.",
+            options: ["16,5 cm", "16,05 cm", "1,65 cm", "165 cm"],
+            correct: "16,5 cm",
+            hint: "1 centymetr to 10 milimetrów. Zatem 5 mm to 0,5 cm."
+        },
+        {
+            id: 6,
+            text: "Zamień 8 kg 70 g na kilogramy.",
+            options: ["8,7 kg", "8,07 kg", "8,007 kg", "870 kg"],
+            correct: "8,07 kg",
+            hint: "1 kilogram to 1000 gramów. 70 gramów to 70/1000 kg, czyli 0,070 kg."
+        },
+        {
+            id: 7,
+            text: "Oblicz: 2,0 - 0,02 =",
+            options: ["1,8", "1,08", "1,98", "0,18"],
+            correct: "1,98",
+            hint: "Zapisz pierwszą liczbę z dwoma miejscami po przecinku: 2,00 - 0,02 i wykonaj odejmowanie."
+        },
+        {
+            id: 8,
+            text: "Wiedząc, że 325 * 126 = 40 950, wskaż wynik działania 3,25 * 12,6.",
+            options: ["409,5", "40,95", "4,095", "4095"],
+            correct: "40,95",
+            hint: "Policz wszystkie cyfry po przecinku w obu liczbach (są trzy). Wynik musi mieć 3 miejsca po przecinku (40,950)."
+        },
+        {
+            id: 9,
+            text: "Maurycy ma 1,6 m wzrostu. Jego tata jest o 22 cm wyższy. Ile wzrostu ma tata?",
+            options: ["1,82 m", "3,8 m", "1,622 m", "1,38 m"],
+            correct: "1,82 m",
+            hint: "Najpierw zamień 22 cm na metry (0,22 m), a potem dodaj do wzrostu Maurycego."
+        },
+        {
+            id: 10,
+            text: "Podłoga ma kształt prostokąta. Jeden bok ma 4,15 m, a drugi jest o 0,7 m dłuższy. Jaka jest długość drugiego boku?",
+            options: ["4,85 m", "3,45 m", "4,22 m", "11,15 m"],
+            correct: "4,85 m",
+            hint: "Skoro drugi bok jest 'o coś dłuższy', musisz wykonać dodawanie: 4,15 + 0,70."
+        },
+        {
+            id: 11,
+            text: "Oblicz w pamięci: 45,5 : 10 =",
+            options: ["455", "4,55", "0,455", "4550"],
+            correct: "4,55",
+            hint: "Przy dzieleniu przez 10 przesuwamy przecinek o jedno miejsce w lewo."
+        },
+        {
+            id: 12,
+            text: "Oblicz w pamięci: 3,14 * 100 =",
+            options: ["31,4", "314", "3140", "0,0314"],
+            correct: "314",
+            hint: "Przy mnożeniu przez 100 przesuwamy przecinek o dwa miejsca w prawo."
+        },
+        {
+            id: 13,
+            text: "Do koktajlu potrzeba 0,4 kg bananów i 0,15 kg jogurtu. Jaka jest łączna masa tych składników?",
+            options: ["0,55 kg", "0,19 kg", "0,415 kg", "0,25 kg"],
+            correct: "0,55 kg",
+            hint: "Dodaj w słupku lub pamięci: 0,40 + 0,15."
+        },
+        {
+            id: 14,
+            text: "Trójkąt równoramienny ma obwód 24,6 m. Podstawa ma 9,84 m. Jak z tego policzyć ramię?",
+            options: ["Od 24,6 odjąć 9,84 i wynik podzielić na 2", "24,6 podzielić na 3", "Dodać 24,6 i 9,84", "Pomnożyć 9,84 przez 2"],
+            correct: "Od 24,6 odjąć 9,84 i wynik podzielić na 2",
+            hint: "Trójkąt równoramienny ma dwa równe ramiona. Obwód to suma wszystkich trzech boków."
+        },
+        {
+            id: 15,
+            text: "Co jest większe: 0,312 czy 0,125?",
+            options: ["0,312", "0,125", "Są równe", "Nie da się określić"],
+            correct: "0,312",
+            hint: "Sprawdź pierwszą cyfrę po przecinku. 3 jest większe niż 1."
+        },
+        {
+            id: 16,
+            text: "Jaka liczba leży na osi liczbowej dokładnie pośrodku między 0,4 a 0,5?",
+            options: ["0,45", "0,41", "0,55", "0,9"],
+            correct: "0,45",
+            hint: "Wyobraź sobie te liczby jako 0,40 i 0,50. Co jest dokładnie pomiędzy 40 a 50?"
+        },
+        {
+            id: 17,
+            text: "Kilogram bananów kosztuje 7,00 zł. Ile zapłacisz za 0,4 kg bananów?",
+            options: ["2,80 zł", "28 zł", "0,28 zł", "3,50 zł"],
+            correct: "2,80 zł",
+            hint: "Musisz wykonać mnożenie: 7 * 0,4."
+        },
+        {
+            id: 18,
+            text: "Oblicz obwód prostokąta o bokach 2,5 cm i 4 cm.",
+            options: ["13 cm", "6,5 cm", "10 cm", "9 cm"],
+            correct: "13 cm",
+            hint: "Obwód prostokąta to suma wszystkich czterech boków: 2 * 2,5 + 2 * 4."
+        },
+        {
+            id: 19,
+            text: "Wskaż wynik dodawania: 54 + 14,713",
+            options: ["68,713", "14,767", "687,13", "15,253"],
+            correct: "68,713",
+            hint: "Liczba 54 to inaczej 54,000. Dodaj całości do całości."
+        },
+        {
+            id: 20,
+            text: "Zosia miała 10 zł. Kupiła zeszyt za 4,50 zł i długopis za 2,30 zł. Ile reszty otrzymała?",
+            options: ["3,20 zł", "6,80 zł", "4,20 zł", "2,20 zł"],
+            correct: "3,20 zł",
+            hint: "Najpierw policz ile Zosia wydała (4,50 + 2,30), a potem odejmij tę kwotę od 10,00 zł."
+        }
+    ];
+
+    // --- SYSTEM AUDIO (Web Audio API - działa wszędzie bez zewnętrznych plików) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const playTone = (frequency, type, duration) => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+    };
+
+    const playCorrectSound = () => {
+        playTone(523.25, 'sine', 0.1); // C5
+        setTimeout(() => playTone(659.25, 'sine', 0.2), 100); // E5
+        setTimeout(() => playTone(783.99, 'sine', 0.3), 200); // G5
+    };
+
+    const playIncorrectSound = () => {
+        playTone(150, 'sawtooth', 0.3);
+        setTimeout(() => playTone(100, 'sawtooth', 0.4), 150);
+    };
+
+    const playFinishSound = () => {
+        [0, 200, 400, 600].forEach((delay, i) => {
+            setTimeout(() => playTone(440 + (i * 110), 'square', 0.2), delay);
+        });
+    };
+
+
+    // --- KOMPONENT GŁÓWNY ---
+    const App = () => {
+        const [studentName, setStudentName] = useState("");
+        const [isStarted, setIsStarted] = useState(false);
+        const [queue, setQueue] = useState([]);
+        const [currentQuestion, setCurrentQuestion] = useState(null);
+        const [score, setScore] = useState(0);
+        const [isFinished, setIsFinished] = useState(false);
+        const [feedback, setFeedback] = useState(null); // 'correct', 'incorrect'
+        const [showHint, setShowHint] = useState(false);
+        const [totalQuestions, setTotalQuestions] = useState(0);
+
+        // Inicjalizacja pytań przy starcie
+        const startQuiz = (name) => {
+            if (audioCtx.state === 'suspended') audioCtx.resume(); // Odblokowanie audio
+            setStudentName(name);
+            setIsStarted(true);
+
+            // Klonujemy i tasujemy pytania, dodajemy licznik prób
+            let shuffled = [...initialQuestions]
+                .sort(() => Math.random() - 0.5)
+                .map(q => ({...q, attempts: 0}));
+
+            setTotalQuestions(shuffled.length);
+            setQueue(shuffled);
+            setCurrentQuestion(shuffled[0]);
+        };
+
+        const handleAnswer = (selectedOption) => {
+            const isCorrect = selectedOption === currentQuestion.correct;
+            setShowHint(false); // Ukryj podpowiedź przy przejściu
+
+            if (isCorrect) {
+                playCorrectSound();
+                setFeedback('correct');
+
+                // Punkty: 1 za pierwszą próbę, 0.75 za kolejne
+                const pointsEarned = currentQuestion.attempts === 0 ? 1 : 0.75;
+                setScore(prev => prev + pointsEarned);
+
+                setTimeout(() => {
+                    setFeedback(null);
+                    const newQueue = queue.slice(1); // Usuń obecne pytanie
+                    if (newQueue.length > 0) {
+                        setQueue(newQueue);
+                        setCurrentQuestion(newQueue[0]);
+                    } else {
+                        setIsFinished(true);
+                        playFinishSound();
+                    }
+                }, 1000);
+
+            } else {
+                playIncorrectSound();
+                setFeedback('incorrect');
+
+                setTimeout(() => {
+                    setFeedback(null);
+                    // Zwiększ licznik błędów i przesuń na koniec
+                    const updatedQuestion = {...currentQuestion, attempts: currentQuestion.attempts + 1};
+                    const newQueue = [...queue.slice(1), updatedQuestion];
+                    setQueue(newQueue);
+                    setCurrentQuestion(newQueue[0]);
+                }, 1200);
+            }
+        };
+
+        const restartQuiz = () => {
+            setIsFinished(false);
+            setScore(0);
+            startQuiz(studentName);
+        };
+
+        // Ekrany aplikacji
+        if (!isStarted) {
+            return <WelcomeScreen onStart={startQuiz}/>;
+        }
+
+        if (isFinished) {
+            return <ResultScreen score={score} total={totalQuestions} name={studentName} onRestart={restartQuiz}/>;
+        }
+
+        if (!currentQuestion) return null;
+
+        const progress = ((totalQuestions - queue.length) / totalQuestions) * 100;
+
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+                {/* Ozdobne tło w kropki */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+                    backgroundImage: 'radial-gradient(#3b82f6 2px, transparent 2px)',
+                    backgroundSize: '30px 30px'
+                }}></div>
+
+                <div className="glass-panel w-full max-w-2xl rounded-3xl p-6 md:p-10 relative z-10 pop-in">
+
+                    {/* Pasek postępu */}
+                    <div className="mb-6">
+                        <div className="flex justify-between text-sm text-slate-500 font-bold mb-2">
+                            <span>Uczeń: {studentName}</span>
+                            <span>Pozostało zadań: {queue.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                            <div className="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
+                                 style={{width: `${progress}%`}}></div>
+                        </div>
+                    </div>
+
+                    {/* Karta z pytaniem */}
+                    <div className={`transition-all duration-300 ${feedback === 'incorrect' ? 'shake' : ''}`}>
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6 text-center">
+                            {currentQuestion.text}
+                        </h2>
+
+                        {/* Informacja jeśli to jest powtórka */}
+                        {currentQuestion.attempts > 0 && (
+                            <div
+                                className="bg-amber-100 text-amber-800 text-sm py-2 px-4 rounded-lg mb-6 text-center font-semibold animate-pulse">
+                                To pytanie sprawiło Ci wcześniej trudność. Spróbuj jeszcze raz! (Max 0.75 pkt)
+                            </div>
+                        )}
+
+                        {/* Opcje odpowiedzi */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                            {currentQuestion.options.map((option, idx) => {
+                                // Ustalanie koloru przycisku po kliknięciu
+                                let btnClass = "bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700";
+                                if (feedback && option === currentQuestion.correct && feedback === 'correct') {
+                                    btnClass = "bg-green-500 border-green-600 text-white shadow-lg transform scale-105";
+                                } else if (feedback === 'incorrect') {
+                                    btnClass = "bg-slate-100 border-slate-200 text-slate-400 opacity-50 cursor-not-allowed";
+                                }
+
+                                return (
+                                    <button
+                                        key={idx}
+                                        disabled={feedback !== null}
+                                        onClick={() => handleAnswer(option)}
+                                        className={`p-4 rounded-xl text-lg font-bold transition-all duration-200 flex items-center text-left gap-3 ${btnClass}`}
+                                    >
+                                            <span
+                                                className="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-lg bg-black/10 text-sm font-black uppercase">
+                                                {String.fromCharCode(65 + idx)}
+                                            </span>
+                                        <span>{option}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+
+                        {/* Sekcja Podpowiedzi */}
+                        <div className="mt-8 text-center border-t border-slate-100 pt-6">
+                            {!showHint ? (
+                                <button
+                                    onClick={() => setShowHint(true)}
+                                    className="text-blue-500 font-bold hover:text-blue-700 flex items-center justify-center mx-auto gap-2 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
+                                         viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                    </svg>
+                                    Potrzebuję podpowiedzi
+                                </button>
+                            ) : (
+                                <div
+                                    className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl pop-in text-left shadow-sm">
+                                    <strong>💡 Podpowiedź:</strong> {currentQuestion.hint}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Nakładka Feedbacku (Zła odpowiedź) */}
+                        {feedback === 'incorrect' && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                                <div
+                                    className="bg-red-500 text-white text-4xl font-black py-4 px-8 rounded-2xl shadow-2xl pop-in transform -rotate-12">
+                                    Ups! Pytanie wróci na koniec.
+                                </div>
+                            </div>
+                        )}
+                        {/* Nakładka Feedbacku (Dobra odpowiedź) */}
+                        {feedback === 'correct' && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                                <div
+                                    className="bg-green-500 text-white text-5xl font-black py-4 px-8 rounded-full shadow-2xl pop-in transform rotate-12">
+                                    SUPER! 🎉
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // --- EKRAN STARTOWY ---
+    const WelcomeScreen = ({onStart}) => {
+        const [name, setName] = useState("");
+
+        const handleSubmit = (e) => {
+            e.preventDefault();
+            if (name.trim().length > 0) {
+                onStart(name.trim());
+            }
+        };
+
+        return (
+            <div
+                className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-100 to-teal-100">
+                <div className="glass-panel w-full max-w-md rounded-3xl p-8 text-center pop-in shadow-2xl">
+                    <div className="text-6xl mb-4">🎓</div>
+                    <h1 className="text-3xl font-black text-slate-800 mb-2">Test z Ułamków!</h1>
+                    <p className="text-slate-600 mb-8 font-medium">Będziemy dodawać, odejmować i przesuwać przecinki.
+                        Błędne pytania wracają na koniec do poprawki!</p>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <input
+                                type="text"
+                                placeholder="Wpisz swoje imię..."
+                                className="w-full px-6 py-4 text-xl border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-center font-bold text-slate-700"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                                autoFocus
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg shadow-blue-500/30 transform transition-all active:scale-95"
+                        >
+                            Rozpocznij Test
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    };
+
+    // --- EKRAN KOŃCOWY ---
+    const ResultScreen = ({score, total, name, onRestart}) => {
+        const percentage = (score / total) * 100;
+        let message = "";
+        let emoji = "";
+
+        if (percentage >= 95) {
+            message = "Fenomenalnie! Jesteś mistrzem ułamków!";
+            emoji = "🏆";
+        } else if (percentage >= 75) {
+            message = "Świetna robota! Bardzo dobry wynik.";
+            emoji = "🌟";
+        } else if (percentage >= 50) {
+            message = "Dobrze Ci poszło, ale warto jeszcze poćwiczyć.";
+            emoji = "👍";
+        } else {
+            message = "Nie poddawaj się! Trening czyni mistrza.";
+            emoji = "💪";
+        }
+
+        return (
+            <div
+                className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 to-emerald-100">
+                <div
+                    className="glass-panel w-full max-w-lg rounded-3xl p-8 text-center pop-in shadow-2xl relative overflow-hidden">
+
+                    {/* Konfetti w CSS */}
+                    <div className="absolute inset-0 pointer-events-none opacity-50 flex justify-around">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.1s', marginTop: '10%'}}></div>
+                        <div className="w-3 h-3 bg-blue-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.3s', marginTop: '30%'}}></div>
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.5s', marginTop: '20%'}}></div>
+                        <div className="w-4 h-4 bg-purple-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.2s', marginTop: '5%'}}></div>
+                    </div>
+
+                    <div className="text-7xl mb-6 relative z-10">{emoji}</div>
+                    <h1 className="text-3xl font-black text-slate-800 mb-2 relative z-10">Koniec testu, {name}!</h1>
+                    <p className="text-lg text-slate-600 mb-8 font-medium relative z-10">{message}</p>
+
+                    <div className="bg-white rounded-2xl p-6 mb-8 shadow-inner border border-slate-100 relative z-10">
+                        <p className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-2">Twój wynik
+                            końcowy</p>
+                        <div className="text-5xl font-black text-emerald-600 mb-2">
+                            {/* Wyświetlamy wynik z maks 2 miejscami po przecinku, by ładnie wyglądały "połówki" */}
+                            {Number.isInteger(score) ? score : score.toFixed(2)} <span
+                            className="text-2xl text-slate-400">/ {total}</span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-4">
+                            (Pamiętaj: pytania poprawione za drugim podejściem warte były 0.75 pkt)
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={onRestart}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg shadow-emerald-500/30 transform transition-all active:scale-95 w-full relative z-10"
+                    >
+                        Zagraj jeszcze raz
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+</script>
+</body>
+</html>
+                        )}
+
+                        {/* Opcje odpowiedzi */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                            {currentQuestion.options.map((option, idx) => {
+                                // Ustalanie koloru przycisku po kliknięciu
+                                let btnClass = "bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700";
+                                if (feedback && option === currentQuestion.correct && feedback === 'correct') {
+                                    btnClass = "bg-green-500 border-green-600 text-white shadow-lg transform scale-105";
+                                } else if (feedback === 'incorrect') {
+                                    btnClass = "bg-slate-100 border-slate-200 text-slate-400 opacity-50 cursor-not-allowed";
+                                }
+
+                                return (
+                                    <button
+                                        key={idx}
+                                        disabled={feedback !== null}
+                                        onClick={() => handleAnswer(option)}
+                                        className={`p-4 rounded-xl text-lg font-bold transition-all duration-200 flex items-center text-left gap-3 ${btnClass}`}
+                                    >
+                                            <span
+                                                className="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-lg bg-black/10 text-sm font-black uppercase">
+                                                {String.fromCharCode(65 + idx)}
+                                            </span>
+                                        <span>{option}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+
+                        {/* Sekcja Podpowiedzi */}
+                        <div className="mt-8 text-center border-t border-slate-100 pt-6">
+                            {!showHint ? (
+                                <button
+                                    onClick={() => setShowHint(true)}
+                                    className="text-blue-500 font-bold hover:text-blue-700 flex items-center justify-center mx-auto gap-2 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
+                                         viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                    </svg>
+                                    Potrzebuję podpowiedzi
+                                </button>
+                            ) : (
+                                <div
+                                    className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl pop-in text-left shadow-sm">
+                                    <strong>💡 Podpowiedź:</strong> {currentQuestion.hint}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Nakładka Feedbacku (Zła odpowiedź) */}
+                        {feedback === 'incorrect' && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                                <div
+                                    className="bg-red-500 text-white text-4xl font-black py-4 px-8 rounded-2xl shadow-2xl pop-in transform -rotate-12">
+                                    Ups! Pytanie wróci na koniec.
+                                </div>
+                            </div>
+                        )}
+                        {/* Nakładka Feedbacku (Dobra odpowiedź) */}
+                        {feedback === 'correct' && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                                <div
+                                    className="bg-green-500 text-white text-5xl font-black py-4 px-8 rounded-full shadow-2xl pop-in transform rotate-12">
+                                    SUPER! 🎉
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // --- EKRAN STARTOWY ---
+    const WelcomeScreen = ({onStart}) => {
+        const [name, setName] = useState("");
+
+        const handleSubmit = (e) => {
+            e.preventDefault();
+            if (name.trim().length > 0) {
+                onStart(name.trim());
+            }
+        };
+
+        return (
+            <div
+                className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-100 to-teal-100">
+                <div className="glass-panel w-full max-w-md rounded-3xl p-8 text-center pop-in shadow-2xl">
+                    <div className="text-6xl mb-4">🎓</div>
+                    <h1 className="text-3xl font-black text-slate-800 mb-2">Test z Ułamków!</h1>
+                    <p className="text-slate-600 mb-8 font-medium">Będziemy dodawać, odejmować i przesuwać przecinki.
+                        Błędne pytania wracają na koniec do poprawki!</p>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <input
+                                type="text"
+                                placeholder="Wpisz swoje imię..."
+                                className="w-full px-6 py-4 text-xl border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-center font-bold text-slate-700"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                                autoFocus
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg shadow-blue-500/30 transform transition-all active:scale-95"
+                        >
+                            Rozpocznij Test
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    };
+
+    // --- EKRAN KOŃCOWY ---
+    const ResultScreen = ({score, total, name, onRestart}) => {
+        const percentage = (score / total) * 100;
+        let message = "";
+        let emoji = "";
+
+        if (percentage >= 95) {
+            message = "Fenomenalnie! Jesteś mistrzem ułamków!";
+            emoji = "🏆";
+        } else if (percentage >= 75) {
+            message = "Świetna robota! Bardzo dobry wynik.";
+            emoji = "🌟";
+        } else if (percentage >= 50) {
+            message = "Dobrze Ci poszło, ale warto jeszcze poćwiczyć.";
+            emoji = "👍";
+        } else {
+            message = "Nie poddawaj się! Trening czyni mistrza.";
+            emoji = "💪";
+        }
+
+        return (
+            <div
+                className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 to-emerald-100">
+                <div
+                    className="glass-panel w-full max-w-lg rounded-3xl p-8 text-center pop-in shadow-2xl relative overflow-hidden">
+
+                    {/* Konfetti w CSS */}
+                    <div className="absolute inset-0 pointer-events-none opacity-50 flex justify-around">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.1s', marginTop: '10%'}}></div>
+                        <div className="w-3 h-3 bg-blue-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.3s', marginTop: '30%'}}></div>
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.5s', marginTop: '20%'}}></div>
+                        <div className="w-4 h-4 bg-purple-500 rounded-full animate-ping"
+                             style={{animationDelay: '0.2s', marginTop: '5%'}}></div>
+                    </div>
+
+                    <div className="text-7xl mb-6 relative z-10">{emoji}</div>
+                    <h1 className="text-3xl font-black text-slate-800 mb-2 relative z-10">Koniec testu, {name}!</h1>
+                    <p className="text-lg text-slate-600 mb-8 font-medium relative z-10">{message}</p>
+
+                    <div className="bg-white rounded-2xl p-6 mb-8 shadow-inner border border-slate-100 relative z-10">
+                        <p className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-2">Twój wynik
+                            końcowy</p>
+                        <div className="text-5xl font-black text-emerald-600 mb-2">
+                            {/* Wyświetlamy wynik z maks 2 miejscami po przecinku, by ładnie wyglądały "połówki" */}
+                            {Number.isInteger(score) ? score : score.toFixed(2)} <span
+                            className="text-2xl text-slate-400">/ {total}</span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-4">
+                            (Pamiętaj: pytania poprawione za drugim podejściem warte były 0.75 pkt)
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={onRestart}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg shadow-emerald-500/30 transform transition-all active:scale-95 w-full relative z-10"
+                    >
+                        Zagraj jeszcze raz
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+</script>
+</body>
+</html>
