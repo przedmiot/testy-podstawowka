@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absurdalne Dyktanda - Trening Ortograficzny</title>
+    
+    <!-- Pobranie Tailwind CSS do szybkiego stylowania RWD -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Pobranie Tone.js do efektów dźwiękowych -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #F0FDF4; /* Delikatny, szkolny zielony w tle */
+            color: #1F2937;
+        }
+
+        /* Style dla pól tekstowych udających puste miejsca w zeszycie */
+        .gap-input {
+            border: none;
+            border-bottom: 3px dashed #9CA3AF;
+            background-color: transparent;
+            text-align: center;
+            font-weight: 800;
+            color: #4F46E5;
+            width: 140px;
+            padding: 0 0.5rem;
+            margin: 0 0.25rem;
+            transition: all 0.3s ease;
+            outline: none;
+            border-radius: 0.25rem 0.25rem 0 0;
+        }
+
+        .gap-input:focus {
+            border-bottom: 3px solid #4F46E5;
+            background-color: #EEF2FF;
+        }
+
+        .gap-input.correct {
+            border-bottom: 3px solid #10B981;
+            color: #065F46;
+            background-color: #D1FAE5;
+        }
+
+        .gap-input.error {
+            border-bottom: 3px solid #EF4444;
+            color: #991B1B;
+            background-color: #FEE2E2;
+            animation: shake 0.4s;
+        }
+
+        /* Style przycisków pomocniczych w tekście */
+        .inline-btn {
+            background: #F3F4F6;
+            border: 2px solid #E5E7EB;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .inline-btn:hover {
+            background: #E5E7EB;
+            transform: scale(1.1);
+        }
+
+        /* Zarządzanie ekranami (SPA) */
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-8">
+
+    <div id="screen-start" class="screen active w-full max-w-lg mx-auto text-center mt-10 bg-white p-8 rounded-3xl shadow-xl border-4 border-indigo-50">
+        <div class="text-6xl mb-6">📝</div>
+        <h1 class="text-4xl font-extrabold text-indigo-600 mb-2">Absurdalne Dyktanda</h1>
+        <p class="text-gray-500 mb-8 text-lg">Witaj w szkole magii ortografii! Wpisz swoje imię, by rozpocząć trening.</p>
+        
+        <input type="text" id="player-name" placeholder="Twoje imię..." 
+               class="w-full text-center text-xl font-bold p-4 border-2 border-gray-300 rounded-xl mb-6 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none transition"
+               autocomplete="off">
+               
+        <button onclick="goToMenu()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-4 px-8 rounded-xl shadow-lg transform transition hover:-translate-y-1">
+            Wejdź do klasy ➔
+        </button>
+    </div>
+
+    <div id="screen-menu" class="screen w-full max-w-4xl mx-auto mt-6">
+        <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm">
+            <h2 class="text-3xl font-extrabold text-gray-800">Witaj, <span id="ui-name" class="text-indigo-600">Uczniu</span>!</h2>
+            <div class="text-gray-500 font-semibold">Wybierz tekst do dyktanda</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="menu-grid">
+            <!-- Karty menu generowane dynamicznie przez JS -->
+        </div>
+    </div>
+
+    <div id="screen-dictation" class="screen w-full max-w-4xl mx-auto mt-6">
+        
+        <!-- Pasek górny -->
+        <div class="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm mb-6 gap-4">
+            <button onclick="goToMenu()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg transition">
+                ⬅ Powrót
+            </button>
+            <h2 id="dictation-title" class="text-2xl font-extrabold text-indigo-600 text-center">Tytuł Dyktanda</h2>
+            <button onclick="speakAll()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-2 px-6 rounded-lg transition flex items-center gap-2">
+                🔊 Czytaj całość
+            </button>
+        </div>
+
+        <!-- Główny kontener na zdania -->
+        <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl text-lg leading-loose text-gray-800" id="dictation-container">
+            <!-- Zdania generowane dynamicznie -->
+        </div>
+
+        <!-- Pasek dolny (Sprawdzanie) -->
+        <div class="mt-8 bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center">
+            <div id="feedback-message" class="text-xl font-bold mb-4 hidden"></div>
+            <button onclick="checkDictation()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xl py-4 px-12 rounded-xl shadow-lg transform transition hover:-translate-y-1 w-full sm:w-auto">
+                ✅ Sprawdź dyktando
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-result" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl transform scale-100 transition-transform">
+            <div class="text-7xl mb-4">🏆</div>
+            <h3 class="text-3xl font-extrabold text-gray-800 mb-2">Świetna robota!</h3>
+            <p class="text-gray-500 mb-6">Ukończyłeś dyktando. Oto Twój wynik:</p>
+            
+            <div class="bg-indigo-50 border-4 border-indigo-100 rounded-full w-40 h-40 flex flex-col items-center justify-center mx-auto mb-8">
+                <span id="final-score" class="text-4xl font-black text-indigo-600">0</span>
+                <span class="text-gray-500 font-bold">/ 10 pkt</span>
+            </div>
+
+            <button onclick="goToMenu()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-4 px-8 rounded-xl shadow-lg transition">
+                Wróć do wyboru tekstów
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const dictationsData = [
+            {
+                id: 1,
+                icon: "🚀",
+                title: "Kosmiczna wyprawa",
+                sentences: [
+                    { p: "Wczoraj ", w: "żółw", s: " Hieronim wyruszył w daleką trasę do gwiazd.", h: "Gad noszący na grzbiecie twardą skorupę." },
+                    { p: "Ubrał żelazny ", w: "hełm", s: " i dziarsko wskoczył do rakiety.", h: "Wojskowe lub ochronne nakrycie głowy." },
+                    { p: "Jego ", w: "wehikuł", s: " pędził przez galaktykę z ogromną prędkością.", h: "Inaczej: niezwykły pojazd, wehikuł czasu (z literą h)." },
+                    { p: "Nagle na przedniej szybie wylądowała wielka ", w: "mucha", s: ".", h: "Bzyczący, latający owad." },
+                    { p: "Hieronim chwycił za ", w: "odkurzacz", s: ", by szybko pozbyć się intruza.", h: "Domowy sprzęt do wciągania kurzu z dywanu." },
+                    { p: "Wtedy z ogromnej ", w: "chmury", s: " wyłonił się fioletowy hipopotam.", h: "Biały lub szary obłok na niebie." },
+                    { p: "Zwierzę zażądało haraczu w postaci świeżej ", w: "rzeżuchy", s: ".", h: "Zielona, ostra w smaku roślina siana na Wielkanoc." },
+                    { p: "Nasz bohater wręczył mu ", w: "bukszpan", s: ", licząc na sprytne oszustwo.", h: "Zielony krzew ogrodowy, słowo-wyjątek z literą 'sz'." },
+                    { p: "Hipopotam uśmiechnął się szeroko i odleciał w ", w: "krzaki", s: ".", h: "Gęste zarośla, niskie rośliny." },
+                    { p: "Tak zakończyła się pierwsza ", w: "przygoda", s: " kosmicznego podróżnika.", h: "Niezwykłe zdarzenie, ekscytujące przeżycie." }
+                ]
+            },
+            {
+                id: 2,
+                icon: "❄️",
+                title: "Bunt lodówki",
+                sentences: [
+                    { p: "Moja ", w: "lodówka", s: " postanowiła dzisiaj rano zastrajkować.", h: "Urządzenie chłodzące w kuchni." },
+                    { p: "O ", w: "siódmej", s: " rano wyrzuciła na podłogę wszystkie parówki.", h: "Godzina zaraz po szóstej." },
+                    { p: "Tata próbował ją uspokoić, dając jej kawałek ", w: "chałwy", s: ".", h: "Słodki, kruszący się przysmak z sezamu." },
+                    { p: "Niestety, ", w: "rozzłoszczona", s: " maszyna zamroziła mu ciepłe kapcie.", h: "Bardzo zdenerwowana, zła (przymiotnik)." },
+                    { p: "W kuchni zapanował straszliwy chaos i ", w: "chłód", s: ".", h: "Inaczej: dojmujące zimno." },
+                    { p: "Mama ", w: "bohatersko", s: " rzuciła się na nią z kuchenną miotłą.", h: "Z wielką odwagą, jak bohater." },
+                    { p: "Maszyna odparła atak, strzelając czerwonymi ", w: "rzodkiewkami", s: ".", h: "Małe, czerwone, ostre warzywa (l. mnoga, narzędnik)." },
+                    { p: "Dopiero ", w: "wujek", s: " Józef obłaskawił ją słoikiem truskawkowego dżemu.", h: "Brat mamy lub taty." },
+                    { p: "W nagrodę dostał od niej przepyszny ", w: "orzechowy", s: " tort.", h: "Przymiotnik: taki zrobiony z orzechów." },
+                    { p: "Od tej chwili sprzęt mruczy cicho niczym mały ", w: "tchórz", s: ".", h: "Zwierzątko leśne lub określenie osoby bojaźliwej." }
+                ]
+            },
+            {
+                id: 3,
+                icon: "🦉",
+                title: "Leśna orkiestra",
+                sentences: [
+                    { p: "W gęstym borze zebrała się niezwykła ", w: "drużyna", s: " muzyków.", h: "Zgrana grupa, zespół lub ekipa sportowa." },
+                    { p: "Wielki ", w: "puszczyk", s: " grał na kontrabasie wykonanym z drewna.", h: "Nocny ptak drapieżny, rodzaj sowy." },
+                    { p: "Nawet ", w: "gżegżółka", s: " przyleciała, by fałszować na małym flecie.", h: "Dawna, staropolska nazwa kukułki, arcytrudny wyjątek." },
+                    { p: "Dyrygentem został stary ", w: "żubr", s: " z ogromnym brzuchem.", h: "Wielki ssak, król polskiej puszczy." },
+                    { p: "Nagle wokół rozległ się potężny ", w: "hałas", s: " i trzask gałęzi.", h: "Głośne dźwięki, raban, zgiełk (przez samo h)." },
+                    { p: "To otyły ", w: "niedźwiedź", s: " potknął się o wystający z ziemi korzeń.", h: "Duży ssak leśny, lubi miód i zapada w sen zimowy." },
+                    { p: "Rozwścieczony ", w: "zwierz", s: " rzucił w muzyków garścią żołędzi.", h: "Inne określenie na dzikie zwierzę (rzeczownik, rodzaj męski)." },
+                    { p: "Ptaki szybko ", w: "schowały", s: " się w dziupli ze strachu przed awanturą.", h: "Ukryły się przed wzrokiem (czasownik)." },
+                    { p: "Przerażony dyrygent natychmiast uciekł w leśne ", w: "chaszcze", s: ".", h: "Bardzo gęste, trudne do przejścia zarośla i krzaki." },
+                    { p: "Tak zakończył się ten ", w: "krótki", s: " koncert pod gołym niebem.", h: "Przeciwieństwo słowa 'długi'." }
+                ]
+            },
+            {
+                id: 4,
+                icon: "👑",
+                title: "Tajemnica władcy",
+                sentences: [
+                    { p: "Dawno temu żył sobie dzielny ", w: "król", s: " o imieniu Bożydar.", h: "Władca państwa w koronie." },
+                    { p: "Pod swoim ogromnym ", w: "łóżkiem", s: " ukrywał różowego zwierzaka.", h: "Wygodny mebel służący do spania." },
+                    { p: "Był to niezwykle żarłoczny i puszysty ", w: "chomik", s: ".", h: "Mały gryzoń domowy trzymany w klatce." },
+                    { p: "Zwierzątko codziennie pożerało ", w: "okruszki", s: " ze stołu władcy.", h: "Bardzo małe resztki chleba lub ciasta." },
+                    { p: "Gdy ", w: "strażnicy", s: " pytali o dziwne dźwięki, władca udawał kaszel.", h: "Żołnierze pełniący wartę, pilnujący zamku." },
+                    { p: "Pewnego popołudnia pupil uciekł na sam środek ", w: "korytarza", s: ".", h: "Długie, wąskie pomieszczenie łączące pokoje." },
+                    { p: "Przebiegł po dywanie i schował się w ", w: "hełmie", s: " rycerza.", h: "Metalowa ochrona na głowę u zbroi." },
+                    { p: "Na szczęście nadworny ", w: "kucharz", s: " zwabił go zapachem jedzenia.", h: "Osoba, która zawodowo przygotowuje posiłki." },
+                    { p: "Użył do tego celu kawałka pieczonej ", w: "rzepy", s: ".", h: "Okrągłe warzywo znane ze słynnego wiersza Tuwima." },
+                    { p: "Od tamtej pory rycerze na ", w: "próżno", s: " szukają potwora w zamku.", h: "Inaczej: na darmo, bezskutecznie." }
+                ]
+            },
+            {
+                id: 5,
+                icon: "🥕",
+                title: "Niezwykłe warzywo",
+                sentences: [
+                    { p: "W wiosennym ", w: "ogródku", s: " wujka Huberta wyrosła gigantyczna roślina.", h: "Przydomowy teren, na którym rosną warzywa i kwiaty." },
+                    { p: "Miała ", w: "kształt", s: " ogromnego, pękatego balonu w kolorze bieli.", h: "Zewnętrzna forma, figura, zarys przedmiotu (z literą sz)." },
+                    { p: "Wujek próbował ją wyrwać, ale opadł z sił i przewrócił się z ", w: "hukiem", s: ".", h: "Z bardzo głośnym dźwiękiem uderzenia lub wystrzału." },
+                    { p: "Zawołał ciocię Bożenę, która akurat jadła ", w: "chleb", s: " z dżemem.", h: "Podstawowy wypiek z mąki i wody." },
+                    { p: "Ciągnęli warzywo razem, robiąc przy tym mnóstwo ", w: "hałasu", s: ".", h: "Inaczej rabanu, zgiełku (przez samo h)." },
+                    { p: "Następnie do akcji wkroczył zwinny ", w: "chart", s: " o imieniu Puszek.", h: "Rasa bardzo szybkiego, smukłego psa myśliwskiego." },
+                    { p: "Niestety, potężna roślina wcale nie drgnęło, a jej ", w: "żółte", s: " liście opadły.", h: "Jasny kolor przypominający słońce." },
+                    { p: "Wtem nad ich głowami nadleciał głośny ", w: "helikopter", s: " ratowniczy.", h: "Statek powietrzny z dużym wirnikiem na dachu." },
+                    { p: "Z wielkiej maszyny zrzucono na trawnik błyszczący ", w: "haczyk", s: " na linie.", h: "Zagięty, mały kawałek metalu np. do łowienia ryb." },
+                    { p: "Roślina wyskoczyła z ziemi, lądując prosto w chłodnej ", w: "rzece", s: ".", h: "Naturalna woda płynąca w korycie, np. Wisła." }
+                ]
+            }
+        ];
+
+        let synth;
+        
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -12;
+            }
+            if (Tone.context.state !== 'running') {
+                Tone.context.resume();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            const now = Tone.now();
+            if (type === 'start') synth.triggerAttackRelease(["C4", "E4", "G4"], "4n", now);
+            if (type === 'hint') synth.triggerAttackRelease("A5", "16n", now);
+            if (type === 'error') synth.triggerAttackRelease("C3", "8n", now);
+            if (type === 'correct-word') synth.triggerAttackRelease(["C5", "E5"], "16n", now);
+            if (type === 'success-all') synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "1n", now);
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Przerwij poprzednie czytanie
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'pl-PL';
+                utterance.rate = 0.85; // Wolniejsze tempo idealne do dyktanda
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("Twoja przeglądarka nie obsługuje czytania na głos. Skorzystaj z tekstowych podpowiedzi (💡).");
+            }
+        }
+
+        function speakAll() {
+            if (!currentDictation) return;
+            const fullText = currentDictation.sentences.map(s => s.p + s.w + s.s).join(" ");
+            speakText(fullText);
+        }
+
+        let playerName = "Uczeń";
+        let currentDictation = null;
+        
+        // Stan pojedynczego dyktanda
+        let attempts = []; 
+        let locked = [];
+        let currentScore = 0;
+
+        function goToMenu() {
+            const inputName = document.getElementById('player-name').value.trim();
+            if (inputName) playerName = inputName;
+            
+            document.getElementById('ui-name').textContent = playerName;
+            window.speechSynthesis.cancel(); // Stop audio
+            
+            // Ukrywamy modal końcowy, jeśli był otwarty
+            document.getElementById('modal-result').classList.add('hidden'); 
+            
+            renderMenu();
+            showScreen('screen-menu');
+            playSound('start');
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function renderMenu() {
+            const grid = document.getElementById('menu-grid');
+            grid.innerHTML = '';
+
+            dictationsData.forEach(dict => {
+                const card = document.createElement('div');
+                card.className = "bg-white border-2 border-transparent hover:border-indigo-400 rounded-2xl p-6 shadow-md hover:shadow-xl cursor-pointer transition transform hover:-translate-y-1 text-center";
+                card.onclick = () => loadDictation(dict.id);
+                
+                card.innerHTML = `
+                    <div class="text-5xl mb-4">${dict.icon}</div>
+                    <h3 class="text-xl font-bold text-gray-800">${dict.title}</h3>
+                    <p class="text-gray-500 mt-2 text-sm">10 trudnych słów</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function loadDictation(id) {
+            currentDictation = dictationsData.find(d => d.id === id);
+            
+            document.getElementById('dictation-title').textContent = currentDictation.icon + " " + currentDictation.title;
+            const container = document.getElementById('dictation-container');
+            container.innerHTML = '';
+
+            // Reset stanu
+            attempts = new Array(10).fill(0);
+            locked = new Array(10).fill(false);
+            currentScore = 0;
+            document.getElementById('feedback-message').classList.add('hidden');
+
+            currentDictation.sentences.forEach((s, idx) => {
+                const sentenceBlock = document.createElement('div');
+                sentenceBlock.className = "mb-6 pb-6 border-b border-gray-100 last:border-0";
+
+                // Główny tekst z inputem i guzikami
+                const textWrapper = document.createElement('div');
+                textWrapper.className = "flex flex-wrap items-center";
+
+                // Przycisk audio
+                const btnAudio = document.createElement('button');
+                btnAudio.className = "inline-btn";
+                btnAudio.title = "Posłuchaj zdania";
+                btnAudio.innerHTML = "🔊";
+                btnAudio.onclick = () => speakText(s.p + s.w + s.s);
+
+                // Tekst przed
+                const prefix = document.createElement('span');
+                prefix.textContent = s.p;
+
+                // Input na słowo
+                const input = document.createElement('input');
+                input.type = "text";
+                input.dataset.idx = idx;
+                input.className = "gap-input";
+                input.placeholder = "wpisz słowo";
+                input.autocomplete = "off";
+                
+                // Usuwanie czerwonej ramki przy ponownym pisaniu
+                input.addEventListener('input', () => {
+                    input.classList.remove('error');
+                });
+
+                // Przycisk podpowiedzi
+                const btnHint = document.createElement('button');
+                btnHint.className = "inline-btn";
+                btnHint.title = "Pokaż podpowiedź";
+                btnHint.innerHTML = "💡";
+                
+                // Div z podpowiedzią (ukryty domyślnie)
+                const hintDiv = document.createElement('div');
+                hintDiv.className = "text-sm text-amber-600 mt-2 font-semibold hidden bg-amber-50 inline-block px-3 py-1 rounded-lg";
+                hintDiv.innerHTML = `Wskazówka: <span class="font-normal italic">${s.h}</span>`;
+
+                btnHint.onclick = () => {
+                    hintDiv.classList.remove('hidden');
+                    playSound('hint');
+                };
+
+                // Tekst po
+                const suffix = document.createElement('span');
+                suffix.textContent = s.s;
+
+                // Składanie w całość
+                textWrapper.appendChild(btnAudio);
+                textWrapper.appendChild(prefix);
+                textWrapper.appendChild(input);
+                textWrapper.appendChild(btnHint);
+                textWrapper.appendChild(suffix);
+                
+                sentenceBlock.appendChild(textWrapper);
+                sentenceBlock.appendChild(hintDiv);
+
+                container.appendChild(sentenceBlock);
+            });
+
+            showScreen('screen-dictation');
+        }
+
+        function checkDictation() {
+            let correctCount = 0;
+            const inputs = document.querySelectorAll('.gap-input');
+            const feedbackMsg = document.getElementById('feedback-message');
+
+            inputs.forEach((input) => {
+                const idx = parseInt(input.dataset.idx);
+                if (locked[idx]) {
+                    correctCount++;
+                    return; // Już wcześniej poprawnie rozwiązane
+                }
+
+                const userVal = input.value.trim().toLowerCase();
+                const expected = currentDictation.sentences[idx].w.toLowerCase();
+
+                if (userVal === expected) {
+                    // Dobra odpowiedź
+                    locked[idx] = true;
+                    input.classList.remove('error');
+                    input.classList.add('correct');
+                    input.disabled = true;
+                    
+                    // Punktacja: 1 pkt za 1. razem, 0.75 pkt za poprawkę
+                    currentScore += (attempts[idx] === 0) ? 1 : 0.75;
+                    correctCount++;
+                } else {
+                    // Błędna odpowiedź
+                    attempts[idx]++;
+                    input.classList.add('error');
+                }
+            });
+
+            if (correctCount === currentDictation.sentences.length) {
+                // Koniec gry, wszystko poprawne!
+                playSound('success-all');
+                document.getElementById('final-score').textContent = currentScore.toFixed(2).replace(/\.00$/, '');
+                document.getElementById('modal-result').classList.remove('hidden');
+                feedbackMsg.classList.add('hidden');
+            } else {
+                // Są błędy
+                playSound('error');
+                feedbackMsg.textContent = "Masz kilka błędów (zaznaczone na czerwono). Popraw je i spróbuj ponownie!";
+                feedbackMsg.className = "text-xl font-bold mb-4 text-red-600 block animation-pulse";
+            }
+        }
+
+        // Obsługa zatwierdzania enterem na ekranie startowym
+        document.getElementById('player-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') goToMenu();
+        });
+
+    </script>
+</body>
+</html>
