@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mistrz Ortografii - Trening</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap');
+
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --secondary: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --bg: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 800px;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            position: relative;
+            display: none;
+            flex-direction: column;
+            min-height: 500px;
+        }
+
+        .active {
+            display: flex;
+        }
+
+        /* Start Screen */
+        .start-screen {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .start-screen h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .start-screen p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+        .input-group {
+            margin-bottom: 2rem;
+        }
+        .input-group input {
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            border: 2px solid #D1D5DB;
+            border-radius: 0.75rem;
+            width: 100%;
+            max-width: 300px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus {
+            border-color: var(--primary);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+            background-color: var(--primary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            background-color: #9CA3AF;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-hint {
+            background-color: var(--warning);
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-hint:hover { background-color: #D97706; }
+
+        /* Quiz UI */
+        .quiz-header {
+            padding: 1.5rem 2rem;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .quiz-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-weight: 600;
+        }
+        .progress-bar-container {
+            height: 6px;
+            background-color: #E5E7EB;
+            width: 100%;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: var(--secondary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .quiz-body {
+            padding: 2rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        @media (min-width: 600px) {
+            .options-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .option-btn {
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: #F9FAFB;
+            border: 2px solid #E5E7EB;
+            border-radius: 0.75rem;
+            color: var(--text-main);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background-color: #EEF2FF;
+        }
+        .option-btn.correct {
+            background-color: #D1FAE5;
+            border-color: var(--secondary);
+            color: #065F46;
+        }
+        .option-btn.wrong {
+            background-color: #FEE2E2;
+            border-color: var(--danger);
+            color: #991B1B;
+        }
+
+        /* Feedback Section */
+        .feedback-area {
+            background-color: #F3F4F6;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: auto;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .feedback-area.show {
+            display: block;
+        }
+        .feedback-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .feedback-title.success { color: var(--secondary); }
+        .feedback-title.error { color: var(--danger); }
+        .rationale-text {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Hint Box */
+        .hint-box {
+            background-color: #FEF3C7;
+            border-left: 4px solid var(--warning);
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin-top: 1rem;
+            display: none;
+            color: #92400E;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s;
+        }
+
+        /* End Screen */
+        .end-screen {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 2rem;
+            font-size: 2.5rem;
+            font-weight: 800;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+        }
+        .score-circle span { font-size: 1rem; font-weight: 600; opacity: 0.8; }
+        
+        .stats-details {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            color: var(--text-muted);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ekran startowy -->
+    <div id="screen-start" class="container active start-screen">
+        <h1>🏆 Mistrz Ortografii</h1>
+        <p>Przed Tobą 25 trudnych pytań. Błędne odpowiedzi wracają na koniec kolejki (za 75% punktów). Walcz do końca!</p>
+        <div class="input-group">
+            <input type="text" id="player-name" placeholder="Wpisz swoje imię..." autocomplete="off">
+        </div>
+        <button class="btn" onclick="startGame()">Rozpocznij Trening 🚀</button>
+    </div>
+
+    <!-- Ekran Quizu -->
+    <div id="screen-quiz" class="container">
+        <div class="quiz-header">
+            <div id="ui-player-name">Uczeń</div>
+            <div class="quiz-stats">
+                <span id="ui-score">Punkty: 0</span>
+                <span id="ui-queue">Kolejka: 25</span>
+            </div>
+        </div>
+        <div class="progress-bar-container">
+            <div id="ui-progress" class="progress-bar"></div>
+        </div>
+        
+        <div class="quiz-body">
+            <h2 id="q-text" class="question-text">Ladowanie pytania...</h2>
+            
+            <div id="options-container" class="options-grid">
+                <!-- Opcje generowane dynamicznie -->
+            </div>
+
+            <div>
+                <button id="btn-hint" class="btn btn-hint" onclick="showHint()">
+                    💡 Podpowiedź
+                </button>
+                <div id="hint-text" class="hint-box"></div>
+            </div>
+
+            <div id="feedback-box" class="feedback-area">
+                <div id="feedback-title" class="feedback-title"></div>
+                <p id="feedback-rationale" class="rationale-text"></p>
+                <button id="btn-next" class="btn" style="width: 100%;" onclick="nextQuestion()">Dalej ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ekran Końcowy -->
+    <div id="screen-end" class="container end-screen">
+        <h1>Gratulacje, <span id="end-name"></span>! 🎉</h1>
+        <p>Ukończyłeś cały trening ortograficzny.</p>
+        
+        <div class="score-circle">
+            <div id="end-score">0</div>
+            <span>/ 25 pkt</span>
+        </div>
+
+        <div class="stats-details">
+            <div><strong id="end-correct-first">0</strong> za pierwszym razem</div>
+            <div><strong id="end-repeated">0</strong> poprawionych</div>
+        </div>
+
+        <button class="btn" onclick="location.reload()">Spróbuj ponownie 🔄</button>
+    </div>
+
+    <script>
+        const questionsData = [
+            {
+                q: "Po literze 'k' zazwyczaj piszemy 'rz' (np. krzak, krzyczeć). Wybierz słowo, które łamie tę zasadę i należy do wyjątków:",
+                options: [
+                    { t: "krzesło", c: false, r: "Słowo to jest w pełni zgodne z główną zasadą pisowni 'rz' po spółgłosce 'k'." },
+                    { t: "kształt", c: true, r: "Słowa takie jak 'kształt', 'bukszpan' i 'Krzysztof' to klasyczne wyjątki z 'sz'." },
+                    { t: "skrzydło", c: false, r: "W tym słowie 'rz' następuje bezpośrednio po 'k', zgodnie z regułą." },
+                    { t: "skrzyżowanie", c: false, r: "Występuje tutaj regularne 'rz' po 'k'." }
+                ],
+                hint: "Zastanów się nad słowem określającym formę, zarys jakiegoś przedmiotu."
+            },
+            {
+                q: "W wyrazie 'wrócić' piszemy 'ó'. Jaka wymiana w rodzinie tego wyrazu tłumaczy tę pisownię?",
+                options: [
+                    { t: "wymiana na 'e' w słowie 'wstecz'", c: false, r: "Słowo 'wstecz' nie tłumaczy tej oboczności." },
+                    { t: "wymiana na 'a' w słowie 'wracać'", c: true, r: "Litera 'ó' wymienia się tu na 'a' w czasowniku 'wracać'." },
+                    { t: "wymiana na 'o' w słowie 'wrotki'", c: false, r: "Zbyt dalekie pokrewieństwo, szukamy bezpośredniego czasownika." },
+                    { t: "nie ma wymiany, to wyjątek", c: false, r: "Słowo to posiada regularną oboczność." }
+                ],
+                hint: "Jak powiesz, gdy czynność powrotu trwa lub powtarza się w czasie? 'Ja codziennie...'"
+            },
+            {
+                q: "Istnieje kategoria słów z tzw. 'h' historycznym. W którym rzędzie wszystkie słowa piszemy przez samo 'h'?",
+                options: [
+                    { t: "hałas, hamak, błahy", c: true, r: "Wszystkie te wyrazy wymagają użycia samoistnego 'h'." },
+                    { t: "chór, chmura, chleb", c: false, r: "Te rdzennie polskie słowa piszemy przez 'ch'." },
+                    { t: "bohater, wahadło, chustka", c: false, r: "Słowo 'chustka' łamie wzór, rozpoczyna się od 'ch'." },
+                    { t: "hałas, chabry, hak", c: false, r: "Wyraz 'chabry' zawiera dwuznak 'ch'." }
+                ],
+                hint: "Szukaj grupy wyrazów, w której ani razu nie spotkasz dwuznaku 'ch'."
+            },
+            {
+                q: "Większość wyrazów rozpoczyna się od otwartego 'u'. Który z poniższych słów ma na początku 'ó'?",
+                options: [
+                    { t: "ul", c: false, r: "Słowo to zaczyna się regularnie od 'u'." },
+                    { t: "ósmy", c: true, r: "Słowa takie jak 'ósmy', 'ów' to nieliczne wyjątki. Tu 'ó' wymienia się na 'o' (osiem)." },
+                    { t: "urząd", c: false, r: "Zgodnie z ogólną zasadą, mamy tu 'u'." },
+                    { t: "ugniatać", c: false, r: "Czasownik regularny z 'u' na starcie." }
+                ],
+                hint: "Pomyśl o liczebniku porządkowym, który w innej formie wymienia się na 'osiem'."
+            },
+            {
+                q: "Rzeczowniki zakończone na '-eż' oraz '-aż' piszemy przez 'ż'. Który wyraz jest przykładem tej reguły?",
+                options: [
+                    { t: "tważ", c: false, r: "Poprawna forma to 'twarz' (rdzennie polskie słowo)." },
+                    { t: "nietopeż", c: false, r: "Zwierzę to 'nietoperz'." },
+                    { t: "młodzież", c: true, r: "Zarówno 'młodzież', jak i 'kradzież' to przykłady zastosowania końcówki '-eż'." },
+                    { t: "kołnież", c: false, r: "Poprawny zapis to 'kołnierz'." }
+                ],
+                hint: "Wybierz słowo określające grupę nastolatków lub młodych ludzi."
+            },
+            {
+                q: "Wybierz słowo, w którym 'ż' poprawnie wymienia się na 's':",
+                options: [
+                    { t: "książka (wymiana na księga)", c: false, r: "Wymiana dotyczy tu litery 'g', a nie 's'." },
+                    { t: "bliżej (wymiana na blisko)", c: true, r: "Oboczność ż:s występuje tu niezwykle wyraźnie." },
+                    { t: "pieniążek (wymiana na pieniądz)", c: false, r: "Oboczność dotyczy spółgłosek ż:dz." },
+                    { t: "ważyć (wymiana na waga)", c: false, r: "Wymiana następuje między ż i g." }
+                ],
+                hint: "Poszukaj stopnia wyższego od przysłówka 'blisko'."
+            },
+            {
+                q: "Zasialiśmy rzeżuchę w... (jak poprawnie zapisać to podchwytliwe słowo?)",
+                options: [
+                    { t: "gżegżułce", c: false, r: "Zastosowano błędne 'u'." },
+                    { t: "grzegżółce", c: false, r: "Na początku powinno być gż." },
+                    { t: "gżegżółce", c: true, r: "Zaczyna się na rzadkie 'gż', potem znowu 'gż', a na końcu 'ó' (od gżegżołka)." },
+                    { t: "grzegrzółce", c: false, r: "Ten ptak nie lubi ani jednego 'rz'." }
+                ],
+                hint: "To słowo nie ma ani jednego 'rz', a w środku kryje się 'ó'."
+            },
+            {
+                q: "W zdaniu 'On (...) zjeść ten kawałek tortu' użyjemy:",
+                options: [
+                    { t: "może, ponieważ pochodzi od słowa morze", c: false, r: "Czasownik ten nie pochodzi od wielkiej wody." },
+                    { t: "morze, ponieważ wymienia się na morski", c: false, r: "Szukamy czasownika oznaczającego możliwość." },
+                    { t: "może, ponieważ wymienia się na g (mogę)", c: true, r: "Forma czasownika móc, oboczność ż:g uzasadnia 'ż'." },
+                    { t: "morze, ponieważ to czasownik", c: false, r: "'Morze' to woda, rzeczownik." }
+                ],
+                hint: "Czasownik od słowa 'móc'."
+            },
+            {
+                q: "W którym przypadku słowo zakończone brzmieniem '-uw' zostało zapisane BŁĘDNIE wg reguł?",
+                options: [
+                    { t: "Kraków", c: false, r: "Nazwa własna z poprawnym '-ów'." },
+                    { t: "domów", c: false, r: "Dopełniacz l. mnogiej to zawsze '-ów'." },
+                    { t: "gotów", c: false, r: "Poprawne użycie zasady." },
+                    { t: "wsuw", c: true, r: "W słowach od 'wsuwać' cząstka 'uw' należy do rdzenia, więc piszemy 'u'." }
+                ],
+                hint: "Zastanów się nad słowem, w którym literka 'w' jest częścią czasownika (wsuwać)."
+            },
+            {
+                q: "Jakiej litery brakuje w słowie 'wa_ać się' i dlaczego?",
+                options: [
+                    { t: "ch, bo wymienia się na sz (waszka)", c: false, r: "Nie ma takiego słowa." },
+                    { t: "h, bo wymienia się na g (waga)", c: true, r: "Wymiana 'h' na 'g' to klasyczna reguła potwierdzająca 'h'." },
+                    { t: "ch, bo po a zawsze piszemy ch", c: false, r: "Brak takiej zasady." },
+                    { t: "h, to wyjątek", c: false, r: "Posiada wyraźną wymianę, to nie wyjątek." }
+                ],
+                hint: "Pomyśl o przedmiocie do mierzenia masy, który brzmi bardzo podobnie."
+            },
+            {
+                q: "W którym słowie dwuznak 'rz' następuje po 'ch', tworząc rzadkie połączenie?",
+                options: [
+                    { t: "chrzan", c: true, r: "Zgodne z regułą (rz po ch) i bardzo tu widoczne." },
+                    { t: "tchórz", c: false, r: "Tu 'rz' jest na końcu." },
+                    { t: "orzech", c: false, r: "'rz' po samogłosce 'o'." },
+                    { t: "zmierzch", c: false, r: "'rz' jest po 'm'." }
+                ],
+                hint: "Ostry korzeń, tarty na Wielkanoc."
+            },
+            {
+                q: "Jaka jest poprawna pisownia tych wyrazów obcego pochodzenia?",
+                options: [
+                    { t: "makijaż, masaż, bandaż", c: true, r: "Zapożyczenia na '-aż' piszemy zawsze przez 'ż'." },
+                    { t: "makijarz, masarz, bandarz", c: false, r: "Końcówka '-arz' to raczej nazwy zawodów (piekarz)." },
+                    { t: "makijaż, masarz, bandaż", c: false, r: "Masarz to zawód, a masaż to zabieg." },
+                    { t: "makijarz, masaż, bandaż", c: false, r: "Błąd w pierwszym słowie." }
+                ],
+                hint: "Przypomnij sobie zasadę z francuskimi zapożyczeniami (np. garaż)."
+            },
+            {
+                q: "W rodzinie słowa 'wierzyć' zachodzi oboczność (rz:r). Jaki wyraz jest na to dowodem?",
+                options: [
+                    { t: "wierzba", c: false, r: "To drzewo, brak pokrewieństwa." },
+                    { t: "wierny", c: true, r: "Zawiera 'r' i pochodzi od tego samego rdzenia." },
+                    { t: "wierzenia", c: false, r: "Dwuznak 'rz' tu pozostał, brak oboczności." },
+                    { t: "zawierucha", c: false, r: "Brak powiązania znaczeniowego (wiatr vs wiara)." }
+                ],
+                hint: "Poszukaj przymiotnika oznaczającego osobę oddaną, lojalną."
+            },
+            {
+                q: "Cząstkę '-unek' na końcu wyrazów (np. malunek) zawsze piszemy...",
+                options: [
+                    { t: "przez 'ó'", c: false, r: "Nigdy w tej cząstce." },
+                    { t: "przez 'u' otwarte", c: true, r: "Przyrostek '-unek' nie zna wyjątków od otwartego 'u'." },
+                    { t: "przez 'ó' dla czasowników", c: false, r: "Nie ma takiej zasady." },
+                    { t: "różnie", c: false, r: "Zasada jest stała." }
+                ],
+                hint: "Ta końcówka jest bardzo uparta. Zawsze zachowuje się tak samo, bez kropek i kresek."
+            },
+            {
+                q: "Wskaż grupę wyjątków, w których po spółgłoskach występuje 'sz' zamiast 'rz':",
+                options: [
+                    { t: "pszczoła, bukszpan, piegża", c: false, r: "Piegża to ż po g." },
+                    { t: "pszenica, wszystko, kształt", c: true, r: "Wszystkie zawierają 'sz' po 'p', 'w', 'k'." },
+                    { t: "Krzysztof, kształt, pszczoła", c: false, r: "Krzysztof ma 'rz'." },
+                    { t: "pszenica, przyroda, bukszpan", c: false, r: "Przyroda jest regularna (rz po p)." }
+                ],
+                hint: "W jednym z zestawów nie ma ani jednego 'rz'."
+            },
+            {
+                q: "Która para wyrazów udowadnia wymianę 'ó' na 'e'?",
+                options: [
+                    { t: "wóz - wozy", c: false, r: "Wymiana na o." },
+                    { t: "pióro - pierze", c: true, r: "Podręcznikowa wymiana ó na e." },
+                    { t: "córka - córki", c: false, r: "Brak oboczności." },
+                    { t: "ból - bolączka", c: false, r: "Wymiana na o." }
+                ],
+                hint: "Pomyśl o ptasich skrzydłach i upierzeniu."
+            },
+            {
+                q: "Roślina o ostrym zapachu, wysiewana na parapecie. Jak ją zapisać?",
+                options: [
+                    { t: "rzeżuchę", c: true, r: "Kolejno: rz, ż, ch. Z pozoru dziwne, ale poprawne." },
+                    { t: "żerzuchę", c: false, r: "Odwrotna kolejność dwuznaków." },
+                    { t: "rzeżuchę (druga)", c: false, r: "Zaznacz pierwszą opcję rzeżuchę :)" },
+                    { t: "żerzóchę", c: false, r: "Błąd podwójny." }
+                ],
+                hint: "Najpierw rz, potem ż z kropką, a na końcu ch. Bez ó."
+            },
+            {
+                q: "W przymiotnikach określających cechy kończących się na '-utki', '-utki' piszemy zawsze przez...",
+                options: [
+                    { t: "ó", c: false, r: "W zdrobnieniach nie stosujemy 'ó'." },
+                    { t: "u", c: true, r: "Przymiotniki zdrabniające na -utki, -uni zawsze mają 'u'." },
+                    { t: "różnie", c: false, r: "Zasada jest sztywna." },
+                    { t: "h", c: false, r: "Nie dotyczy." }
+                ],
+                hint: "Zawsze to samo, proste 'u'."
+            },
+            {
+                q: "Wskaż poprawną parę wymieniającą 'ch' na 'sz':",
+                options: [
+                    { t: "dach - dachy", c: false, r: "Zwykła liczba mnoga." },
+                    { t: "strach - strachy", c: false, r: "Zwykła liczba mnoga." },
+                    { t: "mucha - muszka", c: true, r: "Wyraźna zmiana w zdrobnieniu." },
+                    { t: "ucho - ucha", c: false, r: "Tu dźwięk bez zmian (dopiero w uszko)." }
+                ],
+                hint: "Owady."
+            },
+            {
+                q: "Wyraz 'wehikuł' zapisano poprawnie. Co decyduje o takiej pisowni?",
+                options: [
+                    { t: "Wymiana h na g", c: false, r: "Brak oboczności." },
+                    { t: "Należy zapamiętać (zapożyczenie)", c: true, r: "Wiele słów z 'h' trzeba po prostu zapamiętać." },
+                    { t: "Wymiana h na z", c: false, r: "Brak oboczności." },
+                    { t: "Po 'e' pisze się 'h'", c: false, r: "Nie ma takiej zasady." }
+                ],
+                hint: "Jeśli nie ma zasady ani wymiany... to co robimy z wyrazami obcymi?"
+            },
+            {
+                q: "Jeśli coś wymienia się na 'r' to...",
+                options: [
+                    { t: "Wyjątkowo bywa to ż (jak w rower)", c: false, r: "Rower nie ma oboczności z ż." },
+                    { t: "Wyjątkowo bywa to ż (komża)", c: false, r: "Komża się nie wymienia." },
+                    { t: "PISZEMY rz. Nie ma wyjątków z ż wymiennym na r.", c: true, r: "Wymiana na 'r' to niezawodny dowód na 'rz'." },
+                    { t: "Piszemy sz", c: false, r: "Nie." }
+                ],
+                hint: "Wymiana na twarde 'r' to absolutna gwarancja użycia pewnego dwuznaku."
+            },
+            {
+                q: "Wyraz 'drużyna'. Od jakiego słowa pochodzi i na co wymienia się 'ż'?",
+                options: [
+                    { t: "od 'druh' (na h)", c: true, r: "Powiązane etymologicznie, wymiana ż:h." },
+                    { t: "od 'droga' (na g)", c: false, r: "Brak sensu." },
+                    { t: "od 'druty' (na t)", c: false, r: "Brak sensu." },
+                    { t: "to wyjątek", c: false, r: "Jest wyraźna oboczność." }
+                ],
+                hint: "Harcerz..."
+            },
+            {
+                q: "Jak napisać skróconą wersję 'ósmy' z pomocą cyfry?",
+                options: [
+                    { t: "8-ósmy", c: false, r: "Błąd." },
+                    { t: "8-smy", c: false, r: "Błąd." },
+                    { t: "ó-smy", c: false, r: "Błąd." },
+                    { t: "8.", c: true, r: "Liczebniki porządkowe w Polsce to cyfra i kropka." }
+                ],
+                hint: "Najkrócej jak się da, tylko jeden znak po cyfrze."
+            },
+            {
+                q: "Czasowniki na -uje (np. kupuje). Co dzieje się w bezokoliczniku?",
+                options: [
+                    { t: "Znika, jest -óć", c: false, r: "Nie." },
+                    { t: "Zamienia się na -ow (kupować)", c: true, r: "Klasyczna oboczność (uj:ow)." },
+                    { t: "Samo -je", c: false, r: "Nie." },
+                    { t: "Bez zmian", c: false, r: "Nie." }
+                ],
+                hint: "Ja kupuje, ja chcę to..."
+            },
+            {
+                q: "W którym zestawie WSZYSTKIE słowa są zapisane bezbłędnie?",
+                options: [
+                    { t: "gżegżółka, rzeżucha, skuwka, pszenica", c: true, r: "Zapisane z chirurgiczną precyzją." },
+                    { t: "grzegrzułka, rzerzucha, skufka, pszenica", c: false, r: "Same błędy." },
+                    { t: "gżegżółka, rzeżucha, skówka, pszenica", c: false, r: "Zepsuta skuwka." },
+                    { t: "gżegżółka, rzeżucha, skuwka, pszenica, rzaba", c: false, r: "Zwierzę to żaba." }
+                ],
+                hint: "Zwróć uwagę na skuwkę."
+            }
+        ];
+
+        // Usunięcie powielonej opcji w pytaniu 17
+        questionsData[16].options[2].t = "rzeżucha (druga opcja)"; 
+
+        let playerName = "";
+        let queue = [];
+        let stats = [];
+        let currentScore = 0;
+        let currentQIndex = -1;
+        let answeredCurrent = false;
+
+        let totalCorrectFirstTime = 0;
+        let totalCorrectRepeated = 0;
+
+        // Audio System (Tone.js)
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        synth.volume.value = -10;
+
+        function playSound(type) {
+            if (Tone.context.state !== 'running') Tone.context.resume();
+            
+            if (type === 'start') synth.triggerAttackRelease(["C4", "E4", "G4"], "4n");
+            if (type === 'correct') synth.triggerAttackRelease(["C5", "E5"], "8n");
+            if (type === 'wrong') synth.triggerAttackRelease(["C3", "Db3"], "4n");
+            if (type === 'hint') synth.triggerAttackRelease("G4", "16n");
+            if (type === 'end') synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "1n");
+        }
+
+        function startGame() {
+            const input = document.getElementById('player-name').value.trim();
+            playerName = input || "Uczeń";
+            
+            document.getElementById('ui-player-name').textContent = playerName;
+            
+            // Inicjalizacja gry
+            queue = Array.from({length: questionsData.length}, (_, i) => i);
+            stats = Array.from({length: questionsData.length}, () => ({ attempts: 0 }));
+            currentScore = 0;
+            totalCorrectFirstTime = 0;
+            totalCorrectRepeated = 0;
+            
+            playSound('start');
+
+            document.getElementById('screen-start').classList.remove('active');
+            document.getElementById('screen-quiz').classList.add('active');
+            
+            loadNextFromQueue();
+        }
+
+        function loadNextFromQueue() {
+            if (queue.length === 0) {
+                finishGame();
+                return;
+            }
+
+            currentQIndex = queue.shift();
+            answeredCurrent = false;
+            
+            updateUI();
+            renderQuestion(currentQIndex);
+        }
+
+        function renderQuestion(index) {
+            const qObj = questionsData[index];
+            document.getElementById('q-text').textContent = qObj.q;
+            
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+            
+            qObj.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt.t;
+                btn.onclick = () => selectAnswer(i, btn);
+                optsContainer.appendChild(btn);
+            });
+
+            // Reset UI
+            document.getElementById('feedback-box').classList.remove('show');
+            document.getElementById('hint-text').style.display = 'none';
+            document.getElementById('btn-hint').style.display = 'inline-flex';
+        }
+
+        function selectAnswer(optIndex, btnElement) {
+            if (answeredCurrent) return;
+            answeredCurrent = true;
+
+            const qObj = questionsData[currentQIndex];
+            const isCorrect = qObj.options[optIndex].c;
+            const rationale = qObj.options[optIndex].r;
+            const attempts = stats[currentQIndex].attempts;
+
+            // Zablokuj wszystkie opcje
+            const allBtns = document.getElementById('options-container').children;
+            for(let b of allBtns) {
+                b.disabled = true;
+                // Podświetl poprawną odpowiedź jeśli gracz się pomylił
+                const bText = b.textContent;
+                const corrOpt = qObj.options.find(o => o.c);
+                if (!isCorrect && bText === corrOpt.t) {
+                    b.style.border = "2px solid var(--secondary)";
+                    b.style.color = "var(--secondary)";
+                }
+            }
+
+            const fbBox = document.getElementById('feedback-box');
+            const fbTitle = document.getElementById('feedback-title');
+            const fbRat = document.getElementById('feedback-rationale');
+
+            fbBox.classList.add('show');
+            fbRat.textContent = rationale;
+
+            if (isCorrect) {
+                btnElement.classList.add('correct');
+                playSound('correct');
+                
+                let points = attempts === 0 ? 1 : 0.75;
+                currentScore += points;
+                
+                if (attempts === 0) {
+                    totalCorrectFirstTime++;
+                    fbTitle.innerHTML = "✅ Wspaniale! (1 pkt)";
+                } else {
+                    totalCorrectRepeated++;
+                    fbTitle.innerHTML = "✅ Poprawione! (0.75 pkt)";
+                }
+                fbTitle.className = "feedback-title success";
+
+            } else {
+                btnElement.classList.add('wrong');
+                playSound('wrong');
+                
+                fbTitle.innerHTML = "❌ Niestety...";
+                fbTitle.className = "feedback-title error";
+                
+                // Wraca na koniec kolejki
+                queue.push(currentQIndex);
+            }
+
+            stats[currentQIndex].attempts++;
+            updateUI();
+            
+            // Auto focus na przycisk "Dalej" dla wygody klawiatury
+            document.getElementById('btn-next').focus();
+        }
+
+        function showHint() {
+            if (answeredCurrent) return;
+            playSound('hint');
+            document.getElementById('btn-hint').style.display = 'none';
+            const hintBox = document.getElementById('hint-text');
+            hintBox.textContent = "💡 " + questionsData[currentQIndex].hint;
+            hintBox.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            loadNextFromQueue();
+        }
+
+        function updateUI() {
+            document.getElementById('ui-score').textContent = `Punkty: ${currentScore.toFixed(2)}`;
+            
+            // Kolejka zawiera te w `queue` plus aktualne (1)
+            let remaining = queue.length + (answeredCurrent ? 0 : 1);
+            document.getElementById('ui-queue').textContent = `Pozostało: ${remaining}`;
+
+            // Pasek postępu. Baza to 25.
+            let progress = ((25 - remaining) / 25) * 100;
+            document.getElementById('ui-progress').style.width = `${progress}%`;
+        }
+
+        function finishGame() {
+            playSound('end');
+            document.getElementById('screen-quiz').classList.remove('active');
+            document.getElementById('screen-end').classList.add('active');
+            
+            document.getElementById('end-name').textContent = playerName;
+            document.getElementById('end-score').textContent = currentScore.toFixed(2);
+            document.getElementById('end-correct-first').textContent = totalCorrectFirstTime;
+            document.getElementById('end-repeated').textContent = totalCorrectRepeated;
+        }
+
+        // Pozwól zatwierdzić imię Enterem
+        document.getElementById('player-name').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') startGame();
+        });
+    </script>
+</body>
+</html>
